@@ -5,48 +5,61 @@ var ParseReact = require('parse-react');
 var NavBar = React.createClass({
   mixins: [ParseReact.Mixin ],
 
-  observe() {
+  observe(props,state) {
     return {
-			user: ParseReact.currentUser
+			user: ParseReact.currentUser,
 		};
   },
 
   getInitialState() {
     return {
       userData: null,
-      loggedIn: false,
     };
   },
 
-  componentWillUpdate(){
+  componentWillMount(){
     if (this.data.user) {
-      console.log('componentWillUpdate', this.data.user.authData.facebook);
+      console.log('componentWillMount',this.data.user.authData.facebook);
+      this._fetchUserData(this.data.user.authData.facebook)
+    }
+    else {
+      console.log('should update: no user');
+    }
+  },
+
+  componentDidMount(){
+    if (this.data.user) {
+      console.log('componentWillUpdate',this.data.user.authData.facebook);
+      this._fetchUserData(this.data.user.authData.facebook)
+    }
+    else {
+      console.log('should update: no user');
     }
   },
 
   _logOut: function(e) {
     e.preventDefault();
 		Parse.User.logOut();
+    this.setState({userData: null })
 	},
 
   _facebookLogin: function(e) {
+    var that = this;
     e.preventDefault();
-    Parse.FacebookUtils.logIn('public_profile', {});
+    Parse.FacebookUtils.logIn('public_profile', {
+      success: function(result){
+        // console.log(result.attributes.authData.facebook);
+        that._fetchUserData(result.attributes.authData.facebook);
+      }
+    });
 	},
 
   _fetchUserData: function(facebookData) {
     var apiCall = `https://graph.facebook.com/v2.3/${facebookData.id}?fields=name,email&access_token=${facebookData.access_token}`;
     var _this = this;
-    if (this.state.loggedIn) {
-      $.get(api, function(result) {
-        _this.setState({
-          userData: {
-            name: result.name,
-            email: result.email
-          }
-        })
-      });
-    }
+    $.get(apiCall, function(result) {
+      _this.setState({userData: result.name })
+    });
   },
 
   _submit(e) {
@@ -70,10 +83,8 @@ var NavBar = React.createClass({
   },
 
   render: function() {
-    console.log(this.data);
-    var  _this = this;
     var _userData = this.state.userData;
-    var _loggedIn = this.state.loggedIn;
+    console.log('render',_userData);
     var logButtons = {};
 
     if (this.data.user) {
@@ -101,7 +112,7 @@ var NavBar = React.createClass({
             </div>
             <div className="collapse navbar-collapse" id="js-navbar-collapse">
               <ul className="nav navbar-nav navbar-right">
-                {_userData ? <li><p className='navbar-text'>Welcome {_userData.name}</p></li> : <li></li> }
+                {_userData ? <li><p className='navbar-text'>Welcome {_userData}</p></li> : <li></li> }
                 {logButtons}
               </ul>
               <form className="navbar-form navbar-right" role="search">

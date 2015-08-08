@@ -259,7 +259,7 @@ var NavBar = React.createClass({
 
   mixins: [ParseReact.Mixin],
 
-  observe: function observe() {
+  observe: function observe(props, state) {
     return {
       user: ParseReact.currentUser
     };
@@ -267,40 +267,51 @@ var NavBar = React.createClass({
 
   getInitialState: function getInitialState() {
     return {
-      userData: null,
-      loggedIn: false
+      userData: null
     };
   },
 
-  componentWillUpdate: function componentWillUpdate() {
+  componentWillMount: function componentWillMount() {
+    if (this.data.user) {
+      console.log('componentWillMount', this.data.user.authData.facebook);
+      this._fetchUserData(this.data.user.authData.facebook);
+    } else {
+      console.log('should update: no user');
+    }
+  },
+
+  componentDidMount: function componentDidMount() {
     if (this.data.user) {
       console.log('componentWillUpdate', this.data.user.authData.facebook);
+      this._fetchUserData(this.data.user.authData.facebook);
+    } else {
+      console.log('should update: no user');
     }
   },
 
   _logOut: function _logOut(e) {
     e.preventDefault();
     Parse.User.logOut();
+    this.setState({ userData: null });
   },
 
   _facebookLogin: function _facebookLogin(e) {
+    var that = this;
     e.preventDefault();
-    Parse.FacebookUtils.logIn('public_profile', {});
+    Parse.FacebookUtils.logIn('public_profile', {
+      success: function success(result) {
+        // console.log(result.attributes.authData.facebook);
+        that._fetchUserData(result.attributes.authData.facebook);
+      }
+    });
   },
 
   _fetchUserData: function _fetchUserData(facebookData) {
     var apiCall = 'https://graph.facebook.com/v2.3/' + facebookData.id + '?fields=name,email&access_token=' + facebookData.access_token;
     var _this = this;
-    if (this.state.loggedIn) {
-      $.get(api, function (result) {
-        _this.setState({
-          userData: {
-            name: result.name,
-            email: result.email
-          }
-        });
-      });
-    }
+    $.get(apiCall, function (result) {
+      _this.setState({ userData: result.name });
+    });
   },
 
   _submit: function _submit(e) {
@@ -323,10 +334,8 @@ var NavBar = React.createClass({
   },
 
   render: function render() {
-    console.log(this.data);
-    var _this = this;
     var _userData = this.state.userData;
-    var _loggedIn = this.state.loggedIn;
+    console.log('render', _userData);
     var logButtons = {};
 
     if (this.data.user) {
@@ -396,7 +405,7 @@ var NavBar = React.createClass({
                   'p',
                   { className: 'navbar-text' },
                   'Welcome ',
-                  _userData.name
+                  _userData
                 )
               ) : React.createElement('li', null),
               logButtons
