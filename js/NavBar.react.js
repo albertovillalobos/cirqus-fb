@@ -18,28 +18,24 @@ var NavBar = React.createClass({
     };
   },
 
+  componentWillUpdate(){
+    if (this.data.user) {
+      console.log('componentWillUpdate', this.data.user.authData.facebook);
+    }
+  },
+
   _logOut: function(e) {
     e.preventDefault();
 		Parse.User.logOut();
-    this.setState({loggedIn:false});
 	},
 
   _facebookLogin: function(e) {
-    var _this = this;
     e.preventDefault();
-    Parse.FacebookUtils.logIn('public_profile', {
-      success(user) {
-        _this.setState({loggedIn: true});
-        var facebook = user.attributes.authData.facebook;
-        var apiCall = `https://graph.facebook.com/v2.3/${facebook.id}?fields=name,email&access_token=${facebook.access_token}`;
-        _this._fetchUserData(apiCall);
-      },
-      error(user, error) {
-      }
-    });
+    Parse.FacebookUtils.logIn('public_profile', {});
 	},
 
-  _fetchUserData: function(api) {
+  _fetchUserData: function(facebookData) {
+    var apiCall = `https://graph.facebook.com/v2.3/${facebookData.id}?fields=name,email&access_token=${facebookData.access_token}`;
     var _this = this;
     if (this.state.loggedIn) {
       $.get(api, function(result) {
@@ -74,12 +70,13 @@ var NavBar = React.createClass({
   },
 
   render: function() {
+    console.log(this.data);
     var  _this = this;
     var _userData = this.state.userData;
     var _loggedIn = this.state.loggedIn;
     var logButtons = {};
 
-    if (this.state.loggedIn) {
+    if (this.data.user) {
       logButtons = (<li><a href="/#/logout" onClick={this._logOut}><span className="glyphicon glyphicon-log-out" aria-hidden="true"></span> Log Out</a></li>);
     }
     else {

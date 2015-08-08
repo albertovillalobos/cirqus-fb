@@ -12,7 +12,7 @@ var ChatBox = React.createClass({
   displayName: 'ChatBox',
 
   render: function render() {
-    console.log('ChatBox params:', this.props.params.id);
+    // console.log('ChatBox params:',this.props.params.id);
     return React.createElement(
       'div',
       { className: 'container' },
@@ -272,27 +272,24 @@ var NavBar = React.createClass({
     };
   },
 
+  componentWillUpdate: function componentWillUpdate() {
+    if (this.data.user) {
+      console.log('componentWillUpdate', this.data.user.authData.facebook);
+    }
+  },
+
   _logOut: function _logOut(e) {
     e.preventDefault();
     Parse.User.logOut();
-    this.setState({ loggedIn: false });
   },
 
   _facebookLogin: function _facebookLogin(e) {
-    var _this = this;
     e.preventDefault();
-    Parse.FacebookUtils.logIn('public_profile', {
-      success: function success(user) {
-        _this.setState({ loggedIn: true });
-        var facebook = user.attributes.authData.facebook;
-        var apiCall = 'https://graph.facebook.com/v2.3/' + facebook.id + '?fields=name,email&access_token=' + facebook.access_token;
-        _this._fetchUserData(apiCall);
-      },
-      error: function error(user, _error) {}
-    });
+    Parse.FacebookUtils.logIn('public_profile', {});
   },
 
-  _fetchUserData: function _fetchUserData(api) {
+  _fetchUserData: function _fetchUserData(facebookData) {
+    var apiCall = 'https://graph.facebook.com/v2.3/' + facebookData.id + '?fields=name,email&access_token=' + facebookData.access_token;
     var _this = this;
     if (this.state.loggedIn) {
       $.get(api, function (result) {
@@ -326,12 +323,13 @@ var NavBar = React.createClass({
   },
 
   render: function render() {
+    console.log(this.data);
     var _this = this;
     var _userData = this.state.userData;
     var _loggedIn = this.state.loggedIn;
     var logButtons = {};
 
-    if (this.state.loggedIn) {
+    if (this.data.user) {
       logButtons = React.createElement(
         'li',
         null,
