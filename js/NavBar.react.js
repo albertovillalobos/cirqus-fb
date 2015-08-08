@@ -1,14 +1,56 @@
 var React = require('react');
 var Parse = require('parse').Parse;
 var ParseReact = require('parse-react');
-var Router = require('react-router');
-var Navigation = Router.Navigation;
 
 var NavBar = React.createClass({
-  mixins: [ Navigation, ParseReact.Mixin ],
+  mixins: [ParseReact.Mixin ],
 
   observe() {
+    return {
+			user: ParseReact.currentUser
+		};
+  },
 
+  getInitialState() {
+    return {
+      userData: null,
+      loggedIn: false,
+    };
+  },
+
+  _logOut: function(e) {
+    e.preventDefault();
+		Parse.User.logOut();
+    this.setState({loggedIn:false});
+	},
+
+  _facebookLogin: function(e) {
+    var _this = this;
+    e.preventDefault();
+    Parse.FacebookUtils.logIn('public_profile', {
+      success(user) {
+        _this.setState({loggedIn: true});
+        var facebook = user.attributes.authData.facebook;
+        var apiCall = `https://graph.facebook.com/v2.3/${facebook.id}?fields=name,email&access_token=${facebook.access_token}`;
+        _this._fetchUserData(apiCall);
+      },
+      error(user, error) {
+      }
+    });
+	},
+
+  _fetchUserData: function(api) {
+    var _this = this;
+    if (this.state.loggedIn) {
+      $.get(api, function(result) {
+        _this.setState({
+          userData: {
+            name: result.name,
+            email: result.email
+          }
+        })
+      });
+    }
   },
 
   _submit(e) {
@@ -31,11 +73,21 @@ var NavBar = React.createClass({
     }
   },
 
-  _change(e) {
-    // console.log(e, 'change');
-  },
-
   render: function() {
+    var  _this = this;
+    var _userData = this.state.userData;
+    var _loggedIn = this.state.loggedIn;
+    var logButtons = {};
+
+    if (this.state.loggedIn) {
+      logButtons = (<li><a href="/#/logout" onClick={this._logOut}><span className="glyphicon glyphicon-log-out" aria-hidden="true"></span> Log Out</a></li>);
+    }
+    else {
+      logButtons = (
+          <li><a href="/#/login" onClick={this._facebookLogin}><span className="glyphicon glyphicon-log-in" aria-hidden="true"></span> Log In</a></li>
+      );
+    }
+
     return(
 
       <div className="theNavbar header">
@@ -51,25 +103,29 @@ var NavBar = React.createClass({
               <a className="navbar-brand" href="/#/">Cirqus</a>
             </div>
             <div className="collapse navbar-collapse" id="js-navbar-collapse">
-            <form className="navbar-form navbar-right" role="search">
-              <div className="form-group">
-                <div className="input-group">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Channel Name"
-                    refs="search"
-                    submit={this._submit}
-                    onChange={this._change}
-                    onKeyDown={this._keyDown}
-                    maxLength="30"
-                    />
-                  <span className="input-group-addon" id="basic-addon1">
-                    <span className="glyphicon glyphicon-search" aria-hidden="true"/>
-                  </span>
+              <ul className="nav navbar-nav navbar-right">
+                {_userData ? <li><p className='navbar-text'>Welcome {_userData.name}</p></li> : <li></li> }
+                {logButtons}
+              </ul>
+              <form className="navbar-form navbar-right" role="search">
+                <div className="form-group">
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Channel Name"
+                      refs="search"
+                      submit={this._submit}
+                      onChange={this._change}
+                      onKeyDown={this._keyDown}
+                      maxLength="30"
+                      />
+                    <span className="input-group-addon" id="basic-addon1">
+                      <span className="glyphicon glyphicon-search" aria-hidden="true"/>
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </form>
+              </form>
             </div>
           </div>
         </div>
